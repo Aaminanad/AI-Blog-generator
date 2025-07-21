@@ -8,6 +8,9 @@ from django.http import JsonResponse
 from django.conf import settings
 import json
 from pytube import YouTube
+import os
+import assemblyai as aai
+import openai 
 # Create your views here.
 @login_required
 def index(request):
@@ -18,20 +21,14 @@ def generate_blog(request):
         try:
             data= json.loads(request.body)
             yt_link= data['link']
-            return JsonResponse({'content': yt_link})
         except(KeyError, json.JSONDecodeError):
-            return JsonResponse({'error':'Invalid data sent'}, status=400)
+            return JsonResponse({'error':'Invalid data sent'}, status=500)
         #get yt title
         title= yt_title(yt_link)
         # get transcript
-
-        #use open ai to generate the blog
-        # save blog article to database
-        # return blog article as a response
-            
-    else:
-        return JsonResponse({'error':'Invalid request method'}, status=405)
-
+        transcription=get_transcription(yt_link)
+        if not transcription:
+            return JsonResponse({'error':'Failed to get transcript'}, status=500)
 def yt_title(link):
     yt= YouTube(link)
     title= yt.title
@@ -40,9 +37,34 @@ def download_audio(link):
     yt=YouTube(link)
     video=yt.streams.filter(only_audio=True).first()
     out_file = video.download(output_path=settings.MEDIA_ROOT)
+    base, ext= os.path.splittext(out_file)
+    new_file= base + '.mp3'
+    os.rename(out_file, new_file)
 def get_transcription(link):
-    #audio_file= pass
-    pass
+    audio_file= download_audio(link)
+    aai.settings.api_key= "abffd2ec232e47b88ea0d8bcdcfce6e9"
+
+    transcriber= aai.Transcriber()
+    transcript = transcriber.transcribe()
+    return transcript.text
+def generate_blog_from_transcription(transcription):
+    openai.api_key = "sk-proj-..."  # your key
+
+    prompt = (
+        f"Based on the following transcript from a YouTube video, write a comprehensive blog article. "
+        f"Write it based on the transcript, but format it like a proper blog post:\n\n{transcription}\n\nArticle:"
+    )
+
+    try:
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            max_tokens=1000
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        print("🔥 OpenAI error:", e)  # ✅ This will show in your terminal
+        return None
 
 
 def user_login(request):

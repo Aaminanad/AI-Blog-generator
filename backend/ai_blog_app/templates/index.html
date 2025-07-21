@@ -79,7 +79,7 @@
             <div>
                 <h2 class="text-white font-semibold text-xl mb-4 text-center">Enter Youtube Video link:</h2>
                 <div class="flex space-x-4">
-                    <input id="youtubeLink" type="url" placeholder="Paste Youtube link..." class="flex-grow p-2 border border-pink-400 rouded-l-md">
+                    <input id="youtubeLink" type="url" placeholder="Paste Youtube link..." class="flex-grow p-2 border border-pink-400 rounded-l-md">
                     <button id="generateBlogButton" class="bg-pink-500 text-white px-4 py-2 rounded-r-md hover:bg-pink-600 tarnsition-colors">Generate</button>
                 </div>
             </div>
@@ -94,51 +94,57 @@
             <h2 class="text-center text-white font-semibold text-xl mb-4">Generated Blog Article </h2>
             <div id="blogContent" class="mt-2 text-white space-y-4 ">
             
-            </div>
-            </div>       
+            </div>   
         </section>
-        </div>
     </div>
-    <script></script>
     <footer class="text-center p-4 text-pink-600 mt-6">Made by <a href="https://github.com/Aaminanad">Aamina</a></footer>
     <script>
-        document.getElementById('generateBlogButton').addEventListener('click', async () => {
-            
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM fully loaded."); // ← Should appear
+    const generateButton = document.getElementById('generateBlogButton');
+    if (!generateButton) {
+        console.error("Button not found");
+        return;
+    }
 
-            const youtubeLink = document.getElementById('youtubeLink').value;
-            const loadingIndicator = document.getElementById('loading');
-            const blogContent = document.getElementById('blogContent');
-            
-            if(youtubeLink) {
-                document.getElementById('loading-circle').style.display = 'block';
-                loadingIndicator.classList.remove('hidden');
-                blogContent.innerHTML = ''; // Clear previous content
+    generateButton.addEventListener('click', async () => {
+        console.log("Generate button clicked!"); // ← Should appear
+        const youtubeLink = document.getElementById('youtubeLink').value;
+        const blogContent = document.getElementById('blogContent');
 
-                const endpointUrl = '/generate-blog';
-                
-                try {
-                    const response = await fetch(endpointUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ link: youtubeLink })
-                    });
+        if (youtubeLink) {
+            console.log("Valid YouTube link:", youtubeLink);
+            document.getElementById('loading-circle').style.display = 'block';
+            blogContent.innerHTML = '';
 
-                    const data = await response.json();
+            try {
+                const response = await fetch('/generate-blog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link: youtubeLink })
+                });
 
-                    blogContent.innerHTML = data.content;
-                    loadingIndicator.classList.add('hidden');
-                } catch (error) {
-                    console.error("Error occurred:", error);
-                    alert("Something went wrong. Please try again later.");
-                    loadingIndicator.classList.add('hidden');                    
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
                 }
+
+                const data = await response.json();
+                blogContent.innerHTML = data.content || "No content received.";
+            } catch (error) {
+                console.error("Error occurred:", error);
+                alert("Something went wrong. Please try again.");
+            } finally {
                 document.getElementById('loading-circle').style.display = 'none';
-            } else {
-                alert("Please enter a YouTube link.");
             }
-        });
-    </script>
+        } else {
+            console.warn("No link provided.");
+            alert("Please enter a YouTube link.");
+        }
+    });
+});
+
+</script>
+
+
 </body>
 </html>
